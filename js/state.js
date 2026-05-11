@@ -3,13 +3,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _state = {
-  user:         null,
-  month:        new Date().getMonth(),   // 0-11
-  year:         new Date().getFullYear(),
-  transactions: [],                       // current month
-  templates:    [],                       // fixed-bill templates
-  loading:      false,
-  hideAmounts:  false,
+  user: null,
+  month: new Date().getMonth(), // 0-11
+  year: new Date().getFullYear(),
+  transactions: [], // current month
+  templates: [], // fixed-bill templates
+  loading: false,
+  hideAmounts: false,
 };
 
 const _listeners = new Set();
@@ -25,19 +25,28 @@ export function setState(patch) {
 
 export function subscribe(fn) {
   _listeners.add(fn);
-  return () => _listeners.delete(fn);   // returns unsubscribe
+  return () => _listeners.delete(fn); // returns unsubscribe
 }
 
 // ── Derived selectors ─────────────────────────────────────────────────────────
 
 export function selectTotals(txs = _state.transactions) {
-  let income = 0, fixed = 0, variable = 0;
+  let income = 0,
+    fixed = 0,
+    variable = 0;
   for (const t of txs) {
-    if (t.type === "income")                         income   += t.amount;
-    else if (t.kind === "fixed")                     fixed    += t.amount;
-    else                                             variable += t.amount;
+    if (t.type === "income") income += t.amount;
+    else if (t.kind === "fixed" && t.isPaid)
+      fixed += t.amount; // só conta quando paga
+    else if (t.kind === "variable") variable += t.amount;
   }
-  return { income, fixed, variable, expenses: fixed + variable, balance: income - fixed - variable };
+  return {
+    income,
+    fixed,
+    variable,
+    expenses: fixed + variable,
+    balance: income - fixed - variable,
+  };
 }
 
 export function selectFixedBills(txs = _state.transactions) {

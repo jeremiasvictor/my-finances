@@ -2,22 +2,44 @@
 // js/ui.js  –  DOM rendering helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { FIXED_CATS, VARIABLE_CATS, INCOME_CATS, getCat } from "./categories.js";
-import { getState, selectTotals, selectFixedBills, selectOtherTxs } from "./state.js";
+import {
+  FIXED_CATS,
+  VARIABLE_CATS,
+  INCOME_CATS,
+  getCat,
+} from "./categories.js";
+import {
+  getState,
+  selectTotals,
+  selectFixedBills,
+  selectOtherTxs,
+} from "./state.js";
 
 const MONTHS = [
-  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export const fmt = (n) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    n || 0,
+  );
 
 function el(tag, cls = "", inner = "") {
   const e = document.createElement(tag);
-  if (cls)   e.className = cls;
+  if (cls) e.className = cls;
   if (inner) e.innerHTML = inner;
   return e;
 }
@@ -57,7 +79,8 @@ export function updateTxCount(count) {
 export function renderSummary(txs) {
   const { income, fixed, variable, expenses, balance } = selectTotals(txs);
   const isPos = balance >= 0;
-  const pct   = income > 0 ? Math.abs(Math.round((balance / income) * 100)) : null;
+  const pct =
+    income > 0 ? Math.abs(Math.round((balance / income) * 100)) : null;
 
   // Balance
   const balEl = document.getElementById("card-balance");
@@ -102,13 +125,14 @@ export function renderSummary(txs) {
 
 // ── Fixed bills checklist ─────────────────────────────────────────────────────
 
-export function renderChecklist(txs, onToggle, onDelete) {
+export function renderChecklist(txs, onToggle, onEdit, onDelete) {
   const bills = selectFixedBills(txs);
-  const list  = document.getElementById("checklist-items");
+  const list = document.getElementById("checklist-items");
   const badge = document.getElementById("bills-badge");
   if (!list) return;
 
-  if (badge) badge.textContent = `${bills.filter((b) => b.isPaid).length}/${bills.length} pagas`;
+  if (badge)
+    badge.textContent = `${bills.filter((b) => b.isPaid).length}/${bills.length} pagas`;
 
   if (bills.length === 0) {
     list.innerHTML = `
@@ -121,10 +145,11 @@ export function renderChecklist(txs, onToggle, onDelete) {
     return;
   }
 
-  list.innerHTML = bills.map((tx) => {
-    const cat   = getCat(tx.categoryId);
-    const label = tx.customLabel || cat.label;
-    return `
+  list.innerHTML = bills
+    .map((tx) => {
+      const cat = getCat(tx.categoryId);
+      const label = tx.customLabel || cat.label;
+      return `
       <div class="bill-row ${tx.isPaid ? "paid" : ""}" data-id="${tx.id}">
         <div class="bill-icon ${tx.isPaid ? "dimmed" : ""}">
           <i data-lucide="${cat.icon}"></i>
@@ -137,20 +162,25 @@ export function renderChecklist(txs, onToggle, onDelete) {
         <button class="check-btn ${tx.isPaid ? "checked" : ""}" data-action="toggle" title="Marcar como paga">
           ${tx.isPaid ? '<i data-lucide="check"></i>' : '<span class="check-inner"></span>'}
         </button>
+        <button class="edit-btn" data-action="edit" title="Editar">
+          <i data-lucide="pencil"></i>
+        </button>
         <button class="delete-btn" data-action="delete" title="Excluir">
           <i data-lucide="trash-2"></i>
         </button>
       </div>`;
-  }).join("");
+    })
+    .join("");
 
   // Delegate events
   list.addEventListener("click", (e) => {
     const row = e.target.closest("[data-action]");
     if (!row) return;
-    const id  = row.closest(".bill-row").dataset.id;
-    const tx  = bills.find((b) => b.id === id);
+    const id = row.closest(".bill-row").dataset.id;
+    const tx = bills.find((b) => b.id === id);
     if (!tx) return;
     if (row.dataset.action === "toggle") onToggle(tx);
+    if (row.dataset.action === "edit") onEdit(tx);
     if (row.dataset.action === "delete") onDelete(tx.id);
   });
 
@@ -159,19 +189,20 @@ export function renderChecklist(txs, onToggle, onDelete) {
 
 // ── Other transactions list ───────────────────────────────────────────────────
 
-export function renderOtherTxs(txs, onDelete) {
+export function renderOtherTxs(txs, onEdit, onDelete) {
   const others = selectOtherTxs(txs);
-  const list   = document.getElementById("other-txs");
+  const list = document.getElementById("other-txs");
   if (!list) return;
 
   const section = document.getElementById("other-section");
   if (section) section.style.display = others.length ? "flex" : "none";
 
-  list.innerHTML = others.map((tx) => {
-    const cat     = getCat(tx.categoryId);
-    const label   = tx.customLabel || cat.label;
-    const isIncome = tx.type === "income";
-    return `
+  list.innerHTML = others
+    .map((tx) => {
+      const cat = getCat(tx.categoryId);
+      const label = tx.customLabel || cat.label;
+      const isIncome = tx.type === "income";
+      return `
       <div class="tx-row" data-id="${tx.id}">
         <div class="tx-icon ${isIncome ? "income" : ""}">
           <i data-lucide="${cat.icon}"></i>
@@ -183,37 +214,27 @@ export function renderOtherTxs(txs, onDelete) {
         <p class="tx-amount ${isIncome ? "lime" : "white"}">
           ${isIncome ? "+" : "-"}${mask(fmt(tx.amount))}
         </p>
+        <button class="edit-btn" title="Editar" data-id="${tx.id}">
+          <i data-lucide="pencil"></i>
+        </button>
         <button class="delete-btn" title="Excluir" data-id="${tx.id}">
           <i data-lucide="trash-2"></i>
         </button>
       </div>`;
-  }).join("");
+    })
+    .join("");
 
+  list.querySelectorAll(".edit-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tx = others.find((t) => t.id === btn.dataset.id);
+      if (tx) onEdit(tx);
+    });
+  });
   list.querySelectorAll(".delete-btn").forEach((btn) => {
     btn.addEventListener("click", () => onDelete(btn.dataset.id));
   });
 
   if (window.lucide) lucide.createIcons();
-}
-
-// ── Donut legend ───────────────────────────────────────────────────────────────
-
-export function renderDonutLegend(fixed, variable) {
-  const total = fixed + variable;
-  const pFixed = total > 0 ? Math.round((fixed / total) * 100) : 0;
-  const pVar   = total > 0 ? Math.round((variable / total) * 100) : 0;
-
-  const leg = document.getElementById("donut-legend");
-  if (!leg) return;
-  leg.innerHTML = `
-    <div class="legend-item">
-      <span class="dot purple"></span>
-      <span>Fixas <strong>${pFixed}%</strong></span>
-    </div>
-    <div class="legend-item">
-      <span class="dot lime"></span>
-      <span>Variáveis <strong>${pVar}%</strong></span>
-    </div>`;
 }
 
 // ── Loading overlay ────────────────────────────────────────────────────────────
@@ -227,7 +248,7 @@ export function setLoading(active) {
 
 export function toast(msg, type = "success") {
   const id = "toast-" + Date.now();
-  const t  = el("div", `toast toast-${type}`, msg);
+  const t = el("div", `toast toast-${type}`, msg);
   t.id = id;
   document.body.appendChild(t);
   requestAnimationFrame(() => t.classList.add("show"));
