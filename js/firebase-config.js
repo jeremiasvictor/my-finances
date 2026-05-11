@@ -9,12 +9,12 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyBeCAVW2Jr8mtSS5mBId6Scq5hVhSDD5Eg",
+  authDomain: "meu-financeiro-b02d6.firebaseapp.com",
+  projectId: "meu-financeiro-b02d6",
+  storageBucket: "meu-financeiro-b02d6.firebasestorage.app",
+  messagingSenderId: "632686853797",
+  appId: "1:632686853797:web:8599886936a830fdd4974c",
 };
 
 const app = initializeApp(firebaseConfig);
