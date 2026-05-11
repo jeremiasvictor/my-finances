@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="FinanceOS – Controle financeiro pessoal com estilo." />
+  <meta name="theme-color" content="#0A0A0A" />
+
+  <title>FinanceOS</title>
+
+  <!-- Favicon inline SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230A0A0A'/><text y='22' x='6' font-size='18' font-family='monospace' fill='%23D4FF3F'>₿</text></svg>">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!-- Tailwind (utility-only, CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     LOADING OVERLAY
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="loading-overlay" role="status" aria-label="Carregando…">
+  <div class="spinner"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="glass auth-box">
+    <div class="auth-logo">
+      <div class="logo-icon">
+        <i data-lucide="dollar-sign"></i>
+      </div>
+      <h1>FinanceOS</h1>
+      <p id="auth-title">Entre na sua conta</p>
+    </div>
+
+    <div class="auth-fields">
+      <input id="auth-email" class="field" type="email"    placeholder="Email"  autocomplete="email" />
+      <input id="auth-pass"  class="field" type="password" placeholder="Senha" autocomplete="current-password" />
+    </div>
+
+    <p id="auth-error" class="auth-error"></p>
+
+    <button id="auth-submit" class="submit-btn">Entrar</button>
+
+    <p class="auth-toggle-row" id="auth-toggle-text">
+      Não tem conta? <span id="auth-toggle" class="link">Criar agora</span>
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     APP SCREEN
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="app-screen" style="display:none">
+  <div class="app-wrap">
+
+    <!-- ── Header ────────────────────────────────────────────────────────── -->
+    <header class="site-header">
+      <div class="logo">
+        <div class="logo-icon"><i data-lucide="dollar-sign"></i></div>
+        <span class="logo-name">FinanceOS</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="btn-hide" title="Ocultar valores">
+          <i data-lucide="eye-off"></i>
+        </button>
+        <button class="icon-btn" id="btn-logout" title="Sair">
+          <i data-lucide="log-out"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Month picker ───────────────────────────────────────────────────── -->
+    <div class="glass" id="month-picker"></div>
+
+    <!-- ── Summary cards ─────────────────────────────────────────────────── -->
+    <div class="bento bento-top" style="margin-top:.75rem">
+
+      <!-- Balance -->
+      <div class="glass card card-balance" id="card-balance">
+        <div class="card-row-between">
+          <div>
+            <p class="card-label">Saldo do Mês</p>
+            <p class="card-value lime">R$ 0,00</p>
+          </div>
+          <div class="badge badge-lime">
+            <i data-lucide="trending-up"></i>
+            <span>--%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Income -->
+      <div class="glass card" id="card-income">
+        <i data-lucide="trending-up" class="card-icon lime"></i>
+        <p class="card-label">Receitas</p>
+        <p class="card-value white">R$ 0,00</p>
+      </div>
+
+      <!-- Expenses -->
+      <div class="glass card" id="card-expenses">
+        <i data-lucide="trending-down" class="card-icon purple"></i>
+        <p class="card-label">Despesas</p>
+        <p class="card-value white">R$ 0,00</p>
+        <div class="expense-split">
+          <span class="split-fixed">Fixas: R$ 0,00</span>
+          <span class="split-var">Variáveis: R$ 0,00</span>
+        </div>
+      </div>
+
+    </div><!-- /bento-top -->
+
+    <!-- ── Fixed bills checklist ─────────────────────────────────────────── -->
+    <div class="glass card" style="margin-top:.75rem">
+      <div class="section-header">
+        <span class="section-title">Obrigações do Mês</span>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span class="bills-badge" id="bills-badge">0/0 pagas</span>
+          <button class="btn-add-template" id="btn-add-template" title="Cadastrar conta fixa recorrente">
+            <i data-lucide="plus"></i>
+            Nova fixa
+          </button>
+        </div>
+      </div>
+      <div id="checklist-items">
+        <div class="empty-state">
+          <i data-lucide="target"></i>
+          <p>Nenhuma conta fixa cadastrada</p>
+          <small>Clique em "Nova fixa" para adicionar</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Charts row ─────────────────────────────────────────────────────── -->
+    <div class="bento bento-charts" style="margin-top:.75rem">
+
+      <!-- Donut -->
+      <div class="glass card">
+        <p class="chart-title">Distribuição</p>
+        <div class="donut-wrap">
+          <canvas id="donut-canvas" width="160" height="160"></canvas>
+          <div class="donut-center">
+            <p>Total</p>
+            <p id="donut-total">R$ 0</p>
+          </div>
+        </div>
+        <div class="donut-legend" id="donut-legend">
+          <div class="legend-item"><span class="dot purple"></span><span>Fixas <strong>--%</strong></span></div>
+          <div class="legend-item"><span class="dot lime"></span><span>Variáveis <strong>--%</strong></span></div>
+        </div>
+      </div>
+
+      <!-- Liquidity wave -->
+      <div class="glass card">
+        <p class="chart-title"><i data-lucide="activity" style="display:inline;width:11px;height:11px;vertical-align:middle;margin-right:.25rem"></i>Liquidez no Mês</p>
+        <div class="liquidity-wrap">
+          <canvas id="liquidity-canvas"></canvas>
+        </div>
+      </div>
+
+    </div><!-- /bento-charts -->
+
+    <!-- ── Other transactions ─────────────────────────────────────────────── -->
+    <div class="glass card" id="other-section" style="margin-top:.75rem;flex-direction:column;display:none">
+      <div class="section-header" style="margin-bottom:1rem">
+        <span class="section-title">Outros Lançamentos</span>
+      </div>
+      <div id="other-txs"></div>
+    </div>
+
+  </div><!-- /app-wrap -->
+</div><!-- /app-screen -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     FLOATING ACTION BUTTON
+═══════════════════════════════════════════════════════════════════════════ -->
+<button id="fab" aria-label="Novo lançamento" title="Adicionar lançamento">
+  <i data-lucide="plus"></i>
+</button>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL: ADD TRANSACTION
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-wrapper" id="modal-tx" role="dialog" aria-modal="true" aria-labelledby="modal-tx-title">
+  <div class="modal-backdrop"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-tx-title">Novo Lançamento</h2>
+      <button class="close-btn" data-close-modal="modal-tx" aria-label="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <!-- Type: income / expense -->
+    <div class="tab-row">
+      <button class="tab-btn" data-tx-type="expense">Despesa</button>
+      <button class="tab-btn" data-tx-type="income">Receita</button>
+    </div>
+
+    <!-- Kind: fixed / variable (hidden for income) -->
+    <div class="kind-row" id="kind-row">
+      <button class="kind-btn" data-tx-kind="fixed">Fixa</button>
+      <button class="kind-btn" data-tx-kind="variable">Variável</button>
+    </div>
+
+    <!-- Category grid (populated by JS) -->
+    <div class="cat-grid" id="cat-grid"></div>
+
+    <!-- Custom label for "Outros" -->
+    <div id="tx-custom-wrap" style="display:none;margin-bottom:.6rem">
+      <input id="tx-custom-cat" class="field" placeholder="Nome da categoria" style="width:100%" />
+    </div>
+
+    <!-- Amount + due day -->
+    <div class="form-row">
+      <input id="tx-amount" class="field" type="number" step="0.01" min="0.01" placeholder="Valor (R$)" />
+      <input id="tx-due"    class="field w-20" type="number" min="1" max="31" placeholder="Dia" />
+    </div>
+
+    <!-- Description -->
+    <input id="tx-desc" class="field" placeholder="Descrição (opcional)" style="width:100%" />
+
+    <button id="btn-tx-submit" class="submit-btn">Adicionar</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL: ADD FIXED TEMPLATE
+═══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-wrapper" id="modal-template" role="dialog" aria-modal="true" aria-labelledby="modal-tpl-title">
+  <div class="modal-backdrop"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-tpl-title">Nova Conta Fixa</h2>
+      <button class="close-btn" data-close-modal="modal-template" aria-label="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <p style="font-size:.75rem;color:rgba(255,255,255,.35);margin-bottom:1rem">
+      Esta conta aparecerá automaticamente em todos os meses.
+    </p>
+
+    <!-- Fixed category grid -->
+    <div class="cat-grid" id="tpl-cat-grid"></div>
+
+    <!-- Name + amount + due -->
+    <div class="form-row" style="margin-bottom:.6rem">
+      <input id="tpl-name" class="field" placeholder="Nome (ex: Aluguel Ap. 302)" />
+    </div>
+    <div class="form-row">
+      <input id="tpl-amount" class="field" type="number" step="0.01" min="0.01" placeholder="Valor (R$)" />
+      <input id="tpl-due"    class="field w-20" type="number" min="1" max="31" placeholder="Dia" />
+    </div>
+
+    <button id="btn-tpl-submit" class="submit-btn">Cadastrar</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SCRIPTS  (ES Modules)
+═══════════════════════════════════════════════════════════════════════════ -->
+<script type="module" src="./js/app.js"></script>
+
+<!-- Initialise Lucide icons that are in the static HTML -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) lucide.createIcons();
+  });
+</script>
+
+</body>
+</html>
