@@ -1049,6 +1049,121 @@ body::after {
   color: #fff;
 }
 
+/* ── Bulk delete bar ──────────────────────────────────────────────────────── */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  margin-bottom: 0.75rem;
+  animation: fadeInUp 0.2s ease;
+}
+.bulk-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--purple);
+}
+.bulk-cancel-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  background: var(--glass);
+  transition: color 0.2s;
+}
+.bulk-cancel-btn:hover {
+  color: var(--text);
+}
+.bulk-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9px;
+  color: #fff;
+  background: rgba(255, 80, 80, 0.2);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  transition: background 0.2s;
+}
+.bulk-delete-btn svg {
+  width: 13px;
+  height: 13px;
+}
+.bulk-delete-btn:hover {
+  background: rgba(255, 80, 80, 0.35);
+}
+
+/* ── Row checkbox ─────────────────────────────────────────────────────────── */
+.row-select-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.row-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  accent-color: var(--purple);
+  cursor: pointer;
+}
+.bill-row.selected {
+  background: rgba(168, 85, 247, 0.08) !important;
+  border-color: rgba(168, 85, 247, 0.2) !important;
+}
+
+/* ── Undo toast ───────────────────────────────────────────────────────────── */
+.toast-undo-wrap {
+  position: fixed;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem 0.6rem 1.1rem;
+  border-radius: 99px;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  opacity: 0;
+  transition:
+    opacity 0.25s,
+    transform 0.25s;
+  pointer-events: none;
+}
+.toast-undo-wrap.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.toast-msg {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+.toast-undo-btn {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--lime);
+  padding: 0.25rem 0.6rem;
+  border-radius: 99px;
+  background: rgba(212, 255, 63, 0.1);
+  border: 1px solid rgba(212, 255, 63, 0.2);
+  transition: background 0.15s;
+}
+.toast-undo-btn:hover {
+  background: rgba(212, 255, 63, 0.2);
+}
+
 /* ── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 5px;

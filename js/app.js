@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// js/app.js  –  Main entry point; orchestrates all modules
+// js/app.js  –  Main entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { onAuth, login, register, logout } from "./auth.js";
@@ -11,7 +11,6 @@ import {
   deleteTransaction,
   updateTransaction,
   addFixedTemplate,
-  getFixedTemplates,
   deleteFixedTemplate,
 } from "./db.js";
 import { getState, setState, subscribe, selectTotals } from "./state.js";
@@ -20,9 +19,12 @@ import {
   renderSummary,
   renderChecklist,
   renderOtherTxs,
+  initChecklistListeners,
+  initOtherTxsListeners,
   updateTxCount,
   setLoading,
   toast,
+  toastWithUndo,
   fmt,
 } from "./ui.js";
 import { renderDonut, renderLiquidityChart } from "./charts.js";
@@ -33,24 +35,19 @@ import {
   closeModal,
 } from "./modal.js";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AUTH SCREEN
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Auth screen ───────────────────────────────────────────────────────────────
 
 function showAuth() {
   document.getElementById("auth-screen").style.display = "flex";
   document.getElementById("app-screen").style.display = "none";
 }
-
 function showApp() {
   document.getElementById("auth-screen").style.display = "none";
   document.getElementById("app-screen").style.display = "block";
 }
 
-// Auth form wiring
 (function wireAuthForm() {
   let mode = "login";
-
   const setMode = (m) => {
     mode = m;
     document.getElementById("auth-title").textContent =
@@ -62,17 +59,17 @@ function showApp() {
         ? 'Não tem conta? <span id="auth-toggle" class="link">Criar agora</span>'
         : 'Já tem conta? <span id="auth-toggle" class="link">Entrar</span>';
     document.getElementById("auth-error").textContent = "";
-    wireToggle();
-  };
-
-  function wireToggle() {
     document
       .getElementById("auth-toggle")
       ?.addEventListener("click", () =>
         setMode(mode === "login" ? "signup" : "login"),
       );
-  }
-  wireToggle();
+  };
+  document
+    .getElementById("auth-toggle")
+    ?.addEventListener("click", () =>
+      setMode(mode === "login" ? "signup" : "login"),
+    );
 
   document.getElementById("auth-submit").addEventListener("click", async () => {
     const email = document.getElementById("auth-email").value.trim();
@@ -86,23 +83,18 @@ function showApp() {
       errEl.textContent = e.message;
     }
   });
-
   document.getElementById("auth-pass")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") document.getElementById("auth-submit").click();
   });
 })();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DATA LOADING
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Data loading ──────────────────────────────────────────────────────────────
 
 async function loadMonth() {
   const { user, month, year } = getState();
   if (!user) return;
   setLoading(true);
-
   try {
-    // Ensure fixed bills are instantiated for this month
     await instantiateFixedBills(user.uid, month, year);
     const txs = await getMonthTransactions(user.uid, month, year);
     setState({ transactions: txs, loading: false });
@@ -114,21 +106,67 @@ async function loadMonth() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RENDER
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Delete with undo ──────────────────────────────────────────────────────────
+
+async function deleteWithUndo(uid, id, label = "Lançamento") {
+  // Optimistically remove from UI
+  const { transactions } = getState();
+  const backup = transactions.find((t) => t.id === id);
+  setState({ transactions: transactions.filter((t) => t.id !== id) });
+
+  const confirmed = await toastWithUndo(`${label} excluído`, () => {
+    // Undo: restore local state (no need to re-fetch)
+    setState({
+      transactions: [...getState().transactions, backup].sort(
+        (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0),
+      ),
+    });
+  });
+
+  if (confirmed) {
+    await deleteTransaction(uid, id);
+    // Re-fetch to stay in sync (handles template re-instantiation etc.)
+    await loadMonth();
+  }
+}
+
+async function bulkDeleteWithUndo(uid, ids) {
+  const { transactions } = getState();
+  const backups = transactions.filter((t) => ids.includes(t.id));
+  setState({ transactions: transactions.filter((t) => !ids.includes(t.id)) });
+
+  const confirmed = await toastWithUndo(
+    `${ids.length} conta${ids.length !== 1 ? "s" : ""} excluída${ids.length !== 1 ? "s" : ""}`,
+    () => {
+      setState({
+        transactions: [...getState().transactions, ...backups].sort(
+          (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0),
+        ),
+      });
+    },
+  );
+
+  if (confirmed) {
+    await Promise.all(ids.map((id) => deleteTransaction(uid, id)));
+    await loadMonth();
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
 
 function render(state) {
-  const { transactions: txs, month, year, user } = state;
+  const { transactions: txs, user } = state;
   if (!user) return;
-
-  const { fixed, variable } = selectTotals(txs);
 
   updateTxCount(txs.length);
   renderSummary(txs);
 
-  // Edit handler shared by checklist and other txs
-  const handleEdit = (tx) => {
+  // Build tx lookup for callbacks (by id)
+  const txById = Object.fromEntries(txs.map((t) => [t.id, t]));
+
+  const handleEdit = (id) => {
+    const tx = txById[id];
+    if (!tx) return;
     openTransactionModal(async (payload, txId) => {
       await updateTransaction(user.uid, txId, payload);
       toast("Lançamento atualizado ✓");
@@ -136,34 +174,36 @@ function render(state) {
     }, tx);
   };
 
-  renderChecklist(
-    txs,
-    async (tx) => {
-      await togglePaid(user.uid, tx.id, tx.isPaid);
+  // Checklist callbacks (passed as object, stored at module level in ui.js)
+  renderChecklist(txs, {
+    toggle: async (id) => {
+      const tx = txById[id];
+      if (!tx) return;
+      await togglePaid(user.uid, id, tx.isPaid);
       toast(tx.isPaid ? "Marcada como pendente" : "Conta marcada como paga ✓");
       await loadMonth();
     },
-    handleEdit,
-    async (id) => {
-      if (!confirm("Excluir este lançamento?")) return;
-      await deleteTransaction(user.uid, id);
-      toast("Lançamento excluído");
-      await loadMonth();
+    edit: handleEdit,
+    delete: (id) => {
+      const tx = txById[id];
+      deleteWithUndo(user.uid, id, tx?.customLabel || "Conta");
     },
-  );
-  renderOtherTxs(txs, handleEdit, async (id) => {
-    if (!confirm("Excluir este lançamento?")) return;
-    await deleteTransaction(user.uid, id);
-    toast("Lançamento excluído");
-    await loadMonth();
+    bulkDelete: (ids) => bulkDeleteWithUndo(user.uid, ids),
   });
-  renderDonut("donut-canvas", txs); // now takes full txs
+
+  renderOtherTxs(txs, {
+    edit: handleEdit,
+    delete: (id) => {
+      const tx = txById[id];
+      deleteWithUndo(user.uid, id, tx?.customLabel || "Lançamento");
+    },
+  });
+
+  renderDonut("donut-canvas", txs);
   renderLiquidityChart("liquidity-canvas", txs);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MONTH NAVIGATION
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Month navigation ──────────────────────────────────────────────────────────
 
 function navMonth(dir) {
   let { month, year } = getState();
@@ -186,20 +226,19 @@ function navMonth(dir) {
   loadMonth();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOT
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────────────────
 
-// Subscribe state → render
 subscribe((state) => render(state));
 
-// Auth listener
 onAuth(async (user) => {
   setState({ user });
   if (user) {
     showApp();
 
-    // Render month picker
+    // Init permanent delegated listeners (called ONCE)
+    initChecklistListeners();
+    initOtherTxsListeners();
+
     const { month, year } = getState();
     renderMonthPicker(
       month,
@@ -208,7 +247,6 @@ onAuth(async (user) => {
       () => navMonth(1),
     );
 
-    // Logout button
     document
       .getElementById("btn-logout")
       ?.addEventListener("click", async () => {
@@ -216,7 +254,6 @@ onAuth(async (user) => {
         setState({ transactions: [], templates: [] });
       });
 
-    // Hide amounts toggle
     document.getElementById("btn-hide")?.addEventListener("click", () => {
       const h = !getState().hideAmounts;
       setState({ hideAmounts: h });
@@ -225,7 +262,6 @@ onAuth(async (user) => {
       if (window.lucide) lucide.createIcons();
     });
 
-    // FAB → open transaction modal
     document.getElementById("fab")?.addEventListener("click", () => {
       openTransactionModal(async (payload, txId) => {
         if (txId) {
@@ -243,7 +279,6 @@ onAuth(async (user) => {
       });
     });
 
-    // Template modal trigger (in checklist header)
     document
       .getElementById("btn-add-template")
       ?.addEventListener("click", () => {
@@ -254,7 +289,6 @@ onAuth(async (user) => {
         });
       });
 
-    // Close buttons inside modals
     document.querySelectorAll("[data-close-modal]").forEach((btn) => {
       btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
     });

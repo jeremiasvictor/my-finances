@@ -154,6 +154,20 @@
               </button>
             </div>
           </div>
+
+          <!-- Bulk delete bar (hidden until rows are selected) -->
+          <div id="bulk-bar" style="display: none" class="bulk-bar">
+            <span id="bulk-count" class="bulk-count">0 selecionadas</span>
+            <div style="display: flex; gap: 0.5rem; margin-left: auto">
+              <button id="btn-bulk-cancel" class="bulk-cancel-btn">
+                Cancelar
+              </button>
+              <button id="btn-bulk-delete" class="bulk-delete-btn">
+                <i data-lucide="trash-2"></i>
+                Excluir
+              </button>
+            </div>
+          </div>
           <div id="checklist-items">
             <div class="empty-state">
               <i data-lucide="target"></i>
