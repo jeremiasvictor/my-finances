@@ -8,13 +8,22 @@
 
 import { db } from "./firebase-config.js";
 import {
-  collection, doc, addDoc, setDoc, updateDoc, deleteDoc,
-  getDocs, query, where, orderBy, serverTimestamp,
+  collection,
+  doc,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const txCol  = (uid) => collection(db, "users", uid, "transactions");
+const txCol = (uid) => collection(db, "users", uid, "transactions");
 const tplCol = (uid) => collection(db, "users", uid, "fixedTemplates");
 
 // ── Fixed Bill Templates ──────────────────────────────────────────────────────
@@ -85,27 +94,27 @@ export async function instantiateFixedBills(uid, month, year) {
   // Fetch existing fixed transactions for this month
   const existing = await getMonthTransactions(uid, month, year);
   const existingTemplateIds = new Set(
-    existing.filter((t) => t.templateId).map((t) => t.templateId)
+    existing.filter((t) => t.templateId).map((t) => t.templateId),
   );
 
   const promises = templates
     .filter((tpl) => !existingTemplateIds.has(tpl.id))
     .map((tpl) =>
       addDoc(txCol(uid), {
-        userId:      uid,
-        type:        "expense",
-        kind:        "fixed",
-        categoryId:  tpl.categoryId,
+        userId: uid,
+        type: "expense",
+        kind: "fixed",
+        categoryId: tpl.categoryId,
         customLabel: tpl.name,
         description: null,
-        amount:      tpl.amount,
-        dueDay:      tpl.dueDay || null,
-        isPaid:      false,
+        amount: tpl.amount,
+        dueDay: tpl.dueDay || null,
+        isPaid: false,
         month,
         year,
-        templateId:  tpl.id,
-        createdAt:   serverTimestamp(),
-      })
+        templateId: tpl.id,
+        createdAt: serverTimestamp(),
+      }),
     );
 
   return Promise.all(promises);
@@ -116,16 +125,25 @@ export async function getMonthTransactions(uid, month, year) {
   const q = query(
     txCol(uid),
     where("month", "==", month),
-    where("year",  "==", year),
-    orderBy("createdAt", "asc")
+    where("year", "==", year),
+    orderBy("createdAt", "asc"),
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-/** Toggle isPaid on a transaction. */
-export async function togglePaid(uid, txId, current) {
-  return updateDoc(doc(txCol(uid), txId), { isPaid: !current });
+/**
+ * Mark as paid (with optional real amount) or unpaid.
+ * paidAmount=null means use the estimate (amount field).
+ */
+export async function togglePaid(uid, txId, current, paidAmount = null) {
+  const fields = { isPaid: !current };
+  if (!current) {
+    fields.paidAmount = paidAmount; // null = use estimate
+  } else {
+    fields.paidAmount = null; // clear when marking unpaid
+  }
+  return updateDoc(doc(txCol(uid), txId), fields);
 }
 
 /** Update any fields on a transaction. */

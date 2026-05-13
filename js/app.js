@@ -26,6 +26,7 @@ import {
   toast,
   toastWithUndo,
   showDeleteOptions,
+  showPayModal,
   fmt,
 } from "./ui.js";
 import { renderDonut, renderLiquidityChart } from "./charts.js";
@@ -210,9 +211,20 @@ function render(state) {
     toggle: async (id) => {
       const tx = txById[id];
       if (!tx) return;
-      await togglePaid(user.uid, id, tx.isPaid);
-      toast(tx.isPaid ? "Marcada como pendente" : "Conta marcada como paga ✓");
-      await loadMonth(true); // skip re-instantiate on toggle
+
+      if (!tx.isPaid) {
+        // Marking as PAID → ask for real amount
+        const paidAmount = await showPayModal(tx);
+        if (paidAmount === undefined) return; // user cancelled
+        // paidAmount = null means "use estimate", number means real value
+        await togglePaid(user.uid, id, false, paidAmount);
+        toast("Conta marcada como paga ✓");
+      } else {
+        // Marking as UNPAID → just toggle
+        await togglePaid(user.uid, id, true, null);
+        toast("Marcada como pendente");
+      }
+      await loadMonth(true);
     },
     edit: handleEdit,
     delete: (id) => {

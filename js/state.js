@@ -35,10 +35,14 @@ export function selectTotals(txs = _state.transactions) {
     fixed = 0,
     variable = 0;
   for (const t of txs) {
-    if (t.type === "income") income += t.amount;
-    else if (t.kind === "fixed" && t.isPaid)
-      fixed += t.amount; // só conta quando paga
-    else if (t.kind === "variable") variable += t.amount;
+    if (t.type === "income") {
+      income += t.amount;
+    } else if (t.kind === "fixed" && t.isPaid) {
+      // Use actual paid amount if set, otherwise fall back to estimate
+      fixed += t.paidAmount != null ? t.paidAmount : t.amount;
+    } else if (t.kind === "variable") {
+      variable += t.amount;
+    }
   }
   return {
     income,

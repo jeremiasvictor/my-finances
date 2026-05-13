@@ -213,6 +213,68 @@ export function showDeleteOptions(label) {
   });
 }
 
+// ── Pay modal ─────────────────────────────────────────────────────────────────
+// Shows when marking a fixed bill as paid.
+// Resolves to the paidAmount (number) or null if cancelled.
+// If user leaves blank → returns null (caller uses estimate).
+
+export function showPayModal(tx) {
+  return new Promise((resolve) => {
+    document.getElementById("pay-dialog")?.remove();
+
+    const label = tx.customLabel || tx.categoryId;
+    const estimate = fmt(tx.amount);
+
+    const overlay = document.createElement("div");
+    overlay.id = "pay-dialog";
+    overlay.className = "del-overlay";
+    overlay.innerHTML = `
+      <div class="del-box">
+        <p class="del-title">Confirmar pagamento</p>
+        <p class="del-sub">${label} · Estimativa: <strong style="color:var(--lime)">${estimate}</strong></p>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem">
+          <input id="pay-amount-input" class="field" type="number" step="0.01" min="0"
+            placeholder="Valor pago (deixe vazio para usar estimativa)"
+            style="flex:1" />
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button class="del-cancel" data-choice="cancel" style="flex:1">Cancelar</button>
+          <button class="submit-btn" data-choice="confirm" style="flex:1;margin-top:0">
+            Confirmar
+          </button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add("open"));
+
+    const input = overlay.querySelector("#pay-amount-input");
+    input.focus();
+
+    function close(choice) {
+      overlay.classList.remove("open");
+      setTimeout(() => overlay.remove(), 250);
+      if (choice === "cancel") {
+        resolve(undefined);
+        return;
+      } // undefined = cancelled
+      const val = parseFloat(input.value);
+      resolve(isNaN(val) || val <= 0 ? null : val); // null = use estimate, number = real amount
+    }
+
+    overlay.querySelectorAll("[data-choice]").forEach((btn) => {
+      btn.addEventListener("click", () => close(btn.dataset.choice));
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") close("confirm");
+      if (e.key === "Escape") close("cancel");
+    });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close("cancel");
+    });
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CHECKLIST  (Fixed bills)
 //
@@ -325,6 +387,19 @@ export function renderChecklist(txs, callbacks) {
       const cat = getCat(tx.categoryId);
       const label = tx.customLabel || cat.label;
       const checked = _selected.has(tx.id);
+      const hasDiff =
+        tx.isPaid && tx.paidAmount != null && tx.paidAmount !== tx.amount;
+
+      // Amount display: show estimate always; if paid with different amount, show both
+      const amountHtml = tx.isPaid
+        ? hasDiff
+          ? `<div class="bill-amounts">
+             <span class="bill-estimate">${mask(fmt(tx.amount))}</span>
+             <span class="bill-paid-val">${mask(fmt(tx.paidAmount))}</span>
+           </div>`
+          : `<p class="bill-amount dimmed">${mask(fmt(tx.paidAmount ?? tx.amount))}</p>`
+        : `<p class="bill-amount">${mask(fmt(tx.amount))}</p>`;
+
       return `
       <div class="bill-row ${tx.isPaid ? "paid" : ""} ${checked ? "selected" : ""}" data-id="${tx.id}">
         <label class="row-select-wrap" title="Selecionar">
@@ -337,8 +412,8 @@ export function renderChecklist(txs, callbacks) {
           <p class="bill-name">${label}${tx.description ? ` · ${tx.description}` : ""}</p>
           ${tx.dueDay ? `<p class="bill-due">Vence dia ${tx.dueDay}</p>` : ""}
         </div>
-        <p class="bill-amount ${tx.isPaid ? "dimmed" : ""}">${mask(fmt(tx.amount))}</p>
-        <button class="check-btn ${tx.isPaid ? "checked" : ""}" data-action="toggle" title="Marcar como paga">
+        ${amountHtml}
+        <button class="check-btn ${tx.isPaid ? "checked" : ""}" data-action="toggle" title="${tx.isPaid ? "Desmarcar" : "Marcar como paga"}">
           ${tx.isPaid ? '<i data-lucide="check"></i>' : '<span class="check-inner"></span>'}
         </button>
         <button class="edit-btn" data-action="edit" title="Editar">
