@@ -161,6 +161,58 @@ export function toast(msg, type = "success") {
   }, 2800);
 }
 
+// ── Delete options dialog ─────────────────────────────────────────────────────
+// Returns Promise → "month" | "forever" | null (cancelled)
+
+export function showDeleteOptions(label) {
+  return new Promise((resolve) => {
+    document.getElementById("delete-dialog")?.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "delete-dialog";
+    overlay.className = "del-overlay";
+    overlay.innerHTML = `
+      <div class="del-box">
+        <p class="del-title">Excluir "${label}"</p>
+        <p class="del-sub">Como você quer excluir esta conta?</p>
+        <div class="del-options">
+          <button class="del-opt" data-choice="month">
+            <i data-lucide="calendar-x"></i>
+            <div>
+              <strong>Só este mês</strong>
+              <span>Remove apenas este mês. Volta nos próximos.</span>
+            </div>
+          </button>
+          <button class="del-opt del-opt-danger" data-choice="forever">
+            <i data-lucide="trash-2"></i>
+            <div>
+              <strong>Para sempre</strong>
+              <span>Remove o template. Não aparece mais em nenhum mês.</span>
+            </div>
+          </button>
+        </div>
+        <button class="del-cancel" data-choice="cancel">Cancelar</button>
+      </div>`;
+
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => overlay.classList.add("open"));
+
+    function close(choice) {
+      overlay.classList.remove("open");
+      setTimeout(() => overlay.remove(), 250);
+      resolve(choice === "cancel" ? null : choice);
+    }
+
+    overlay.querySelectorAll("[data-choice]").forEach((btn) => {
+      btn.addEventListener("click", () => close(btn.dataset.choice));
+    });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close("cancel");
+    });
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CHECKLIST  (Fixed bills)
 //

@@ -1049,6 +1049,132 @@ body::after {
   color: #fff;
 }
 
+/* ── Delete options dialog ────────────────────────────────────────────────── */
+.del-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.del-overlay.open {
+  opacity: 1;
+}
+
+.del-box {
+  background: #111;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8);
+  transform: scale(0.95);
+  transition: transform 0.2s;
+}
+.del-overlay.open .del-box {
+  transform: scale(1);
+}
+
+.del-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.del-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.del-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.del-opt {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: left;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.del-opt:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.del-opt svg {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.del-opt div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.del-opt strong {
+  font-size: 0.82rem;
+  color: var(--text);
+  font-weight: 700;
+}
+.del-opt span {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.del-opt-danger {
+  border-color: rgba(255, 80, 80, 0.15);
+}
+.del-opt-danger:hover {
+  background: rgba(255, 80, 80, 0.08);
+  border-color: rgba(255, 80, 80, 0.3);
+}
+.del-opt-danger svg {
+  color: var(--red);
+}
+.del-opt-danger strong {
+  color: var(--red);
+}
+
+.del-cancel {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.del-cancel:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
 /* ── Bulk delete bar ──────────────────────────────────────────────────────── */
 .bulk-bar {
   display: flex;

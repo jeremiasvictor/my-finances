@@ -25,6 +25,7 @@ import {
   setLoading,
   toast,
   toastWithUndo,
+  showDeleteOptions,
   fmt,
 } from "./ui.js";
 import { renderDonut, renderLiquidityChart } from "./charts.js";
@@ -90,12 +91,12 @@ function showApp() {
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 
-async function loadMonth() {
+async function loadMonth(skipInstantiate = false) {
   const { user, month, year } = getState();
   if (!user) return;
   setLoading(true);
   try {
-    await instantiateFixedBills(user.uid, month, year);
+    if (!skipInstantiate) await instantiateFixedBills(user.uid, month, year);
     const txs = await getMonthTransactions(user.uid, month, year);
     setState({ transactions: txs, loading: false });
   } catch (e) {
@@ -106,16 +107,40 @@ async function loadMonth() {
   }
 }
 
-// ── Delete with undo ──────────────────────────────────────────────────────────
+// ── Delete fixed bill (shows "this month" vs "forever" dialog) ────────────────
+
+async function deleteFixedBill(uid, tx) {
+  const label = tx.customLabel || tx.categoryId;
+  const choice = await showDeleteOptions(label);
+  if (!choice) return; // cancelled
+
+  // Optimistically remove from UI
+  const { transactions } = getState();
+  setState({ transactions: transactions.filter((t) => t.id !== tx.id) });
+
+  if (choice === "forever") {
+    // Delete template (stops re-instantiation) + this month's instance
+    if (tx.templateId) await deleteFixedTemplate(uid, tx.templateId);
+    await deleteTransaction(uid, tx.id);
+    toast("Conta fixa removida para sempre");
+  } else {
+    // Delete only this month's instance — but skip instantiateFixedBills on reload
+    await deleteTransaction(uid, tx.id);
+    toast("Removida só deste mês ✓");
+  }
+
+  // Reload WITHOUT re-instantiating (pass skipInstantiate flag)
+  await loadMonth(choice === "month");
+}
+
+// ── Delete variable/income with undo ──────────────────────────────────────────
 
 async function deleteWithUndo(uid, id, label = "Lançamento") {
-  // Optimistically remove from UI
   const { transactions } = getState();
   const backup = transactions.find((t) => t.id === id);
   setState({ transactions: transactions.filter((t) => t.id !== id) });
 
   const confirmed = await toastWithUndo(`${label} excluído`, () => {
-    // Undo: restore local state (no need to re-fetch)
     setState({
       transactions: [...getState().transactions, backup].sort(
         (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0),
@@ -125,7 +150,6 @@ async function deleteWithUndo(uid, id, label = "Lançamento") {
 
   if (confirmed) {
     await deleteTransaction(uid, id);
-    // Re-fetch to stay in sync (handles template re-instantiation etc.)
     await loadMonth();
   }
 }
@@ -147,8 +171,15 @@ async function bulkDeleteWithUndo(uid, ids) {
   );
 
   if (confirmed) {
-    await Promise.all(ids.map((id) => deleteTransaction(uid, id)));
-    await loadMonth();
+    // For bulk: also delete templates of fixed bills
+    await Promise.all(
+      backups.map(async (tx) => {
+        if (tx.kind === "fixed" && tx.templateId)
+          await deleteFixedTemplate(uid, tx.templateId);
+        await deleteTransaction(uid, tx.id);
+      }),
+    );
+    await loadMonth(true); // skip re-instantiate since we deleted the templates
   }
 }
 
@@ -174,19 +205,19 @@ function render(state) {
     }, tx);
   };
 
-  // Checklist callbacks (passed as object, stored at module level in ui.js)
+  // Checklist callbacks
   renderChecklist(txs, {
     toggle: async (id) => {
       const tx = txById[id];
       if (!tx) return;
       await togglePaid(user.uid, id, tx.isPaid);
       toast(tx.isPaid ? "Marcada como pendente" : "Conta marcada como paga ✓");
-      await loadMonth();
+      await loadMonth(true); // skip re-instantiate on toggle
     },
     edit: handleEdit,
     delete: (id) => {
       const tx = txById[id];
-      deleteWithUndo(user.uid, id, tx?.customLabel || "Conta");
+      if (tx) deleteFixedBill(user.uid, tx);
     },
     bulkDelete: (ids) => bulkDeleteWithUndo(user.uid, ids),
   });
