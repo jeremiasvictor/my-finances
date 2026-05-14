@@ -18,3 +18,8 @@ service cloud.firestore {
     }
   }
 }
+
+// NOTE: You'll also need these composite indexes in Firebase Console:
+// users/{uid}/budgetPlans  → month ASC, year ASC, createdAt ASC
+// users/{uid}/invoices     → month ASC, year ASC, createdAt ASC
+// users/{uid}/invoiceMembers → invoiceId ASC, createdAt ASC

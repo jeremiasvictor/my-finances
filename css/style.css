@@ -1374,3 +1374,258 @@ body::after {
     grid-column: 1 / -1;
   }
 }
+
+/* ── OVERFLOW FIXES ───────────────────────────────────────────────────────── */
+.card-value {
+  font-family: var(--mono);
+  font-size: clamp(1.1rem, 4vw, 1.9rem); /* responsive, no overflow */
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  word-break: break-all;
+}
+
+.donut-legend {
+  display: flex;
+  flex-wrap: wrap; /* wrap instead of overflow */
+  justify-content: center;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.75rem;
+  max-height: 72px;
+  overflow-y: auto;
+}
+
+/* ── DESCRIPTION SUB-TEXT ─────────────────────────────────────────────────── */
+.bill-desc,
+.tx-desc {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── BUDGET PLAN ──────────────────────────────────────────────────────────── */
+.budget-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.budget-row {
+  margin-bottom: 0.85rem;
+}
+.budget-row:last-child {
+  margin-bottom: 0;
+}
+
+.budget-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.4rem;
+}
+
+.budget-cat-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: rgba(212, 255, 63, 0.08);
+  display: grid;
+  place-items: center;
+  color: var(--lime);
+  flex-shrink: 0;
+}
+.budget-cat-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.budget-cat-info {
+  flex: 1;
+  min-width: 0;
+}
+.budget-cat-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.budget-cat-sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+.budget-over {
+  color: var(--red);
+  margin-left: 0.35rem;
+}
+
+.budget-left {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--lime);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.budget-left.red {
+  color: var(--red);
+}
+
+.budget-del {
+  margin-left: 0.25rem;
+}
+
+.budget-bar-track {
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--lime);
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 2px;
+}
+
+/* ── INVOICE CARD ─────────────────────────────────────────────────────────── */
+.invoice-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 0.65rem;
+}
+.invoice-card:last-child {
+  margin-bottom: 0;
+}
+
+.invoice-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.invoice-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.invoice-total {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  color: var(--purple);
+  margin-top: 0.15rem;
+}
+
+.invoice-members {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: opacity 0.2s;
+}
+.member-row.member-paid {
+  opacity: 0.5;
+}
+
+.member-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.member-check.checked {
+  background: rgba(212, 255, 63, 0.14);
+  border-color: rgba(212, 255, 63, 0.4);
+  color: var(--lime);
+}
+.member-check svg {
+  width: 11px;
+  height: 11px;
+}
+
+.member-name {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+.member-amount {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.member-del {
+  color: rgba(255, 80, 80, 0.3);
+  flex-shrink: 0;
+}
+.member-del svg {
+  width: 12px;
+  height: 12px;
+}
+
+.invoice-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+}
+.invoice-my-share {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.btn-add-member {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0.3rem 0.65rem;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.btn-add-member svg {
+  width: 12px;
+  height: 12px;
+}
+.btn-add-member:hover {
+  color: var(--lime);
+  border-color: rgba(212, 255, 63, 0.3);
+}
+
+.inv-del {
+  color: rgba(255, 80, 80, 0.3);
+}
+.inv-del:hover {
+  color: var(--red);
+}
