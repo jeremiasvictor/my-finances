@@ -182,10 +182,12 @@ export async function getInvoiceMembers(uid, invoiceId) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 export async function addInvoiceMember(uid, invoiceId, data) {
+  // data: { color, amount, isPaid }
   return addDoc(memberCol(uid), {
     userId: uid,
     invoiceId,
     isPaid: false,
+    color: "#A855F7",
     ...data,
     createdAt: serverTimestamp(),
   });

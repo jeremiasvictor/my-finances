@@ -63,13 +63,15 @@ export function renderDonut(canvasId, transactions) {
           data: isEmpty ? [1] : data,
           backgroundColor: isEmpty ? ["rgba(255,255,255,0.06)"] : colors,
           borderWidth: 0,
-          hoverOffset: 6,
-          borderRadius: 4,
+          hoverOffset: 4,
+          borderRadius: 3,
         },
       ],
     },
     options: {
-      cutout: "72%",
+      cutout: "70%",
+      responsive: true,
+      maintainAspectRatio: true,
       plugins: {
         legend: { display: false },
         tooltip: {

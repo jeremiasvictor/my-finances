@@ -235,9 +235,16 @@ body::after {
   padding: 1.25rem;
 }
 
-/* Balance card */
+/* Balance card - full width */
 .card-balance {
   grid-column: 1 / -1;
+}
+
+/* Income + Expenses side by side, each half width, no overflow */
+#card-income,
+#card-expenses {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .card-row-between {
@@ -257,10 +264,18 @@ body::after {
 
 .card-value {
   font-family: var(--mono);
-  font-size: 1.9rem;
+  font-size: clamp(0.9rem, 3.5vw, 1.4rem);
   font-weight: 500;
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Balance card gets bigger value since it has full width */
+.card-balance .card-value {
+  font-size: clamp(1.4rem, 5vw, 1.9rem);
+  white-space: nowrap;
 }
 .card-value.lime {
   color: var(--lime);
@@ -572,7 +587,14 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 160px;
+  height: 140px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.donut-wrap canvas {
+  max-width: 140px;
+  max-height: 140px;
 }
 
 .donut-center {
@@ -911,6 +933,8 @@ body::after {
   font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .field:focus {
   border-color: rgba(212, 255, 63, 0.35);
@@ -921,6 +945,21 @@ body::after {
 .field.w-20 {
   width: 80px;
   flex: none;
+}
+
+/* Dark select dropdown */
+select.field {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='rgba(255,255,255,0.35)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+select.field option {
+  background: #1a1a1a;
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.5rem;
 }
 
 .submit-btn {
@@ -1252,13 +1291,44 @@ body::after {
   align-items: center;
   flex-shrink: 0;
   cursor: pointer;
+  width: 20px;
+  height: 20px;
+  position: relative;
 }
+/* Hide the native checkbox completely */
 .row-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+/* Custom checkbox face */
+.row-select-wrap::after {
+  content: "";
+  display: block;
   width: 16px;
   height: 16px;
   border-radius: 5px;
-  accent-color: var(--purple);
-  cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  flex-shrink: 0;
+}
+.row-checkbox:checked ~ * {
+  display: none;
+} /* hide anything after if needed */
+/* When checked, style the wrapper */
+.bill-row.selected .row-select-wrap::after {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: var(--purple);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6l3 3 5-5' stroke='%23A855F7' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
 }
 .bill-row.selected {
   background: rgba(168, 85, 247, 0.08) !important;
@@ -1628,4 +1698,45 @@ body::after {
 }
 .inv-del:hover {
   color: var(--red);
+}
+
+/* ── Color picker (invoice members) ──────────────────────────────────────── */
+.color-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+  flex-shrink: 0;
+}
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+.color-swatch.active {
+  border-color: white;
+  transform: scale(1.1);
+}
+
+/* ── Member row with color dot ────────────────────────────────────────────── */
+.member-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.member-status {
+  font-size: 0.68rem;
+  color: var(--muted);
+  flex: 1;
+}
+.member-row.member-paid .member-status {
+  color: rgba(212, 255, 63, 0.6);
 }

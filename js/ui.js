@@ -505,7 +505,6 @@ export function renderInvoices(
     .map(({ invoice, members }) => {
       const totalMembers = members.reduce((s, m) => s + m.amount, 0);
       const myShare = Math.max(0, invoice.totalAmount - totalMembers);
-      const paidCount = members.filter((m) => m.isPaid).length;
 
       return `
       <div class="invoice-card" data-invoice-id="${invoice.id}">
@@ -525,11 +524,12 @@ export function renderInvoices(
             .map(
               (m) => `
             <div class="member-row ${m.isPaid ? "member-paid" : ""}" data-member-id="${m.id}">
+              <div class="member-color-dot" style="background:${m.color || "#A855F7"}"></div>
               <div class="member-check ${m.isPaid ? "checked" : ""}" data-action="toggle-member">
                 ${m.isPaid ? '<i data-lucide="check"></i>' : ""}
               </div>
-              <span class="member-name">${m.name}</span>
               <span class="member-amount">${mask(fmt(m.amount))}</span>
+              <span class="member-status">${m.isPaid ? "Depositado" : "Pendente"}</span>
               <button class="delete-btn member-del" data-member-id="${m.id}"><i data-lucide="x"></i></button>
             </div>`,
             )
@@ -544,14 +544,13 @@ export function renderInvoices(
             <span style="font-family:var(--mono);font-size:.85rem;color:var(--lime)">${mask(fmt(myShare))}</span>
           </div>
           <button class="btn-add-member" data-invoice-id="${invoice.id}">
-            <i data-lucide="user-plus"></i> Adicionar pessoa
+            <i data-lucide="plus"></i> Adicionar parte
           </button>
         </div>
       </div>`;
     })
     .join("");
 
-  // Wire events (delegation per invoice card)
   container.querySelectorAll(".inv-del").forEach((btn) => {
     btn.addEventListener("click", () => onDeleteInvoice(btn.dataset.invoiceId));
   });
@@ -561,7 +560,6 @@ export function renderInvoices(
   container.querySelectorAll("[data-action='toggle-member']").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.closest(".member-row").dataset.memberId;
-      // find member across all invoices
       const allMembers = invoicesData.flatMap((d) => d.members);
       const m = allMembers.find((x) => x.id === id);
       if (m) onToggleMember(m);

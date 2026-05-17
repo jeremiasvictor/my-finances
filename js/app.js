@@ -341,21 +341,54 @@ function openAddMemberModal(invoiceId, onSubmit) {
   const modal = document.createElement("div");
   modal.id = "modal-member";
   modal.className = "modal-wrapper open";
+
+  const PRESET_COLORS = [
+    "#A855F7",
+    "#D4FF3F",
+    "#38BDF8",
+    "#FB923C",
+    "#F472B6",
+    "#34D399",
+    "#FACC15",
+    "#F87171",
+    "#2DD4BF",
+    "#818CF8",
+  ];
+
   modal.innerHTML = `
     <div class="modal-backdrop"></div>
     <div class="modal-box">
       <div class="modal-header">
-        <h2 class="modal-title">Adicionar Pessoa</h2>
+        <h2 class="modal-title">Adicionar Parte</h2>
         <button class="close-btn" id="close-member-modal"><i data-lucide="x"></i></button>
       </div>
-      <input id="mem-name"   class="field" placeholder="Nome da pessoa" style="width:100%;margin-bottom:.75rem"/>
+      <p style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Escolha uma cor para identificar esta parte</p>
+      <div class="color-picker-row" id="color-picker-row">
+        ${PRESET_COLORS.map(
+          (c, i) => `
+          <button class="color-swatch ${i === 0 ? "active" : ""}" data-color="${c}"
+            style="background:${c}" title="${c}"></button>`,
+        ).join("")}
+      </div>
       <input id="mem-amount" class="field" type="number" step="0.01" min="0"
-        placeholder="Parcela (R$)" style="width:100%;margin-bottom:.75rem"/>
+        placeholder="Valor da parte (R$)" style="width:100%;margin-bottom:.75rem"/>
       <button id="btn-mem-submit" class="submit-btn">Adicionar</button>
     </div>`;
+
   document.body.appendChild(modal);
   document.body.style.overflow = "hidden";
   if (window.lucide) lucide.createIcons();
+
+  let selectedColor = PRESET_COLORS[0];
+  modal.querySelectorAll(".color-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      modal
+        .querySelectorAll(".color-swatch")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedColor = btn.dataset.color;
+    });
+  });
 
   const closeModal = () => {
     modal.remove();
@@ -366,17 +399,12 @@ function openAddMemberModal(invoiceId, onSubmit) {
     .addEventListener("click", closeModal);
   modal.querySelector(".modal-backdrop").addEventListener("click", closeModal);
   modal.querySelector("#btn-mem-submit").addEventListener("click", async () => {
-    const name = modal.querySelector("#mem-name").value.trim();
     const amount = parseFloat(modal.querySelector("#mem-amount").value);
-    if (!name) {
-      toast("Informe o nome", "error");
-      return;
-    }
     if (!amount || amount <= 0) {
       toast("Informe o valor", "error");
       return;
     }
-    await onSubmit(invoiceId, { name, amount });
+    await onSubmit(invoiceId, { color: selectedColor, amount });
     closeModal();
   });
 }
