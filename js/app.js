@@ -63,47 +63,6 @@ function showApp() {
   document.getElementById("app-screen").style.display = "block";
 }
 
-(function wireAuthForm() {
-  let mode = "login";
-  const setMode = (m) => {
-    mode = m;
-    document.getElementById("auth-title").textContent =
-      m === "login" ? "Entre na sua conta" : "Crie sua conta";
-    document.getElementById("auth-submit").textContent =
-      m === "login" ? "Entrar" : "Criar conta";
-    document.getElementById("auth-toggle-text").innerHTML =
-      m === "login"
-        ? 'Não tem conta? <span id="auth-toggle" class="link">Criar agora</span>'
-        : 'Já tem conta? <span id="auth-toggle" class="link">Entrar</span>';
-    document.getElementById("auth-error").textContent = "";
-    document
-      .getElementById("auth-toggle")
-      ?.addEventListener("click", () =>
-        setMode(mode === "login" ? "signup" : "login"),
-      );
-  };
-  document
-    .getElementById("auth-toggle")
-    ?.addEventListener("click", () =>
-      setMode(mode === "login" ? "signup" : "login"),
-    );
-  document.getElementById("auth-submit").addEventListener("click", async () => {
-    const email = document.getElementById("auth-email").value.trim();
-    const pass = document.getElementById("auth-pass").value;
-    const errEl = document.getElementById("auth-error");
-    errEl.textContent = "";
-    try {
-      if (mode === "login") await login(email, pass);
-      else await register(email, pass);
-    } catch (e) {
-      errEl.textContent = e.message;
-    }
-  });
-  document.getElementById("auth-pass")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("auth-submit").click();
-  });
-})();
-
 // ── Data loading ──────────────────────────────────────────────────────────────
 
 async function loadMonth(skipInstantiate = false) {
@@ -618,117 +577,163 @@ function navMonth(dir) {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
-subscribe((state) => render(state));
+document.addEventListener("DOMContentLoaded", () => {
+  subscribe((state) => render(state));
 
-onAuth(async (user) => {
-  setState({ user });
-  if (user) {
-    showApp();
-    initChecklistListeners();
-    initOtherTxsListeners();
-
-    const { month, year } = getState();
-    renderMonthPicker(
-      month,
-      year,
-      () => navMonth(-1),
-      () => navMonth(1),
-    );
-
+  // Wire auth form
+  (function wireAuthForm() {
+    let mode = "login";
+    const setMode = (m) => {
+      mode = m;
+      document.getElementById("auth-title").textContent =
+        m === "login" ? "Entre na sua conta" : "Crie sua conta";
+      document.getElementById("auth-submit").textContent =
+        m === "login" ? "Entrar" : "Criar conta";
+      document.getElementById("auth-toggle-text").innerHTML =
+        m === "login"
+          ? 'Não tem conta? <span id="auth-toggle" class="link">Criar agora</span>'
+          : 'Já tem conta? <span id="auth-toggle" class="link">Entrar</span>';
+      document.getElementById("auth-error").textContent = "";
+      document
+        .getElementById("auth-toggle")
+        ?.addEventListener("click", () =>
+          setMode(mode === "login" ? "signup" : "login"),
+        );
+    };
     document
-      .getElementById("btn-logout")
+      .getElementById("auth-toggle")
+      ?.addEventListener("click", () =>
+        setMode(mode === "login" ? "signup" : "login"),
+      );
+    document
+      .getElementById("auth-submit")
       ?.addEventListener("click", async () => {
-        await logout();
-        setState({ transactions: [], budgetPlans: [], invoices: [] });
-      });
-
-    document.getElementById("btn-hide")?.addEventListener("click", () => {
-      const h = !getState().hideAmounts;
-      setState({ hideAmounts: h });
-      document.getElementById("btn-hide").innerHTML =
-        `<i data-lucide="${h ? "eye" : "eye-off"}"></i>`;
-      if (window.lucide) lucide.createIcons();
-    });
-
-    document.getElementById("fab")?.addEventListener("click", () => {
-      openTransactionModal(async (payload, txId) => {
-        if (txId) {
-          await updateTransaction(user.uid, txId, payload);
-          toast("Lançamento atualizado ✓");
-        } else {
-          await addTransaction(user.uid, {
-            ...payload,
-            month: getState().month,
-            year: getState().year,
-          });
-          toast("Lançamento adicionado ✓");
+        const email = document.getElementById("auth-email").value.trim();
+        const pass = document.getElementById("auth-pass").value;
+        const errEl = document.getElementById("auth-error");
+        errEl.textContent = "";
+        try {
+          if (mode === "login") await login(email, pass);
+          else await register(email, pass);
+        } catch (e) {
+          errEl.textContent = e.message;
         }
-        await loadMonth();
       });
+    document.getElementById("auth-pass")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("auth-submit").click();
     });
+  })();
 
-    document
-      .getElementById("btn-add-template")
-      ?.addEventListener("click", () => {
-        openTemplateModal(async (data) => {
-          const { repeatEveryMonth, ...rest } = data;
-          if (repeatEveryMonth) {
-            // Save as recurring template (instantiateFixedBills will create this month's entry)
-            await addFixedTemplate(user.uid, rest);
-            toast("Conta fixa recorrente cadastrada ✓");
+  onAuth(async (user) => {
+    setState({ user });
+    if (user) {
+      showApp();
+      initChecklistListeners();
+      initOtherTxsListeners();
+
+      const { month, year } = getState();
+      renderMonthPicker(
+        month,
+        year,
+        () => navMonth(-1),
+        () => navMonth(1),
+      );
+
+      document
+        .getElementById("btn-logout")
+        ?.addEventListener("click", async () => {
+          await logout();
+          setState({ transactions: [], budgetPlans: [], invoices: [] });
+        });
+
+      document.getElementById("btn-hide")?.addEventListener("click", () => {
+        const h = !getState().hideAmounts;
+        setState({ hideAmounts: h });
+        document.getElementById("btn-hide").innerHTML =
+          `<i data-lucide="${h ? "eye" : "eye-off"}"></i>`;
+        if (window.lucide) lucide.createIcons();
+      });
+
+      document.getElementById("fab")?.addEventListener("click", () => {
+        openTransactionModal(async (payload, txId) => {
+          if (txId) {
+            await updateTransaction(user.uid, txId, payload);
+            toast("Lançamento atualizado ✓");
           } else {
-            // Save only as a one-off transaction for this month
-            const { month, year } = getState();
             await addTransaction(user.uid, {
-              type: "expense",
-              kind: "fixed",
-              categoryId: rest.categoryId,
-              customLabel: rest.customLabel || rest.name,
-              description: null,
-              amount: rest.amount,
-              dueDay: rest.dueDay || null,
-              isPaid: false,
-              templateId: null,
-              month,
-              year,
+              ...payload,
+              month: getState().month,
+              year: getState().year,
             });
-            toast("Conta fixa adicionada só este mês ✓");
+            toast("Lançamento adicionado ✓");
           }
           await loadMonth();
         });
       });
 
-    document.getElementById("btn-add-budget")?.addEventListener("click", () => {
-      openBudgetModal(async (data) => {
-        const { repeatEveryMonth, ...rest } = data;
-        const { month, year } = getState();
-        if (repeatEveryMonth) {
-          await addBudgetPlanTemplate(user.uid, rest);
-          toast("Categoria recorrente adicionada ✓");
-        } else {
-          await addBudgetPlan(user.uid, month, year, rest);
-          toast("Categoria adicionada ao plano ✓");
-        }
-        await loadMonth(true);
-      });
-    });
-
-    document
-      .getElementById("btn-add-invoice")
-      ?.addEventListener("click", () => {
-        openInvoiceModal(async (data) => {
-          await addInvoice(user.uid, getState().month, getState().year, data);
-          toast("Fatura criada ✓");
-          await loadMonth(true);
+      document
+        .getElementById("btn-add-template")
+        ?.addEventListener("click", () => {
+          openTemplateModal(async (data) => {
+            const { repeatEveryMonth, ...rest } = data;
+            if (repeatEveryMonth) {
+              await addFixedTemplate(user.uid, rest);
+              toast("Conta fixa recorrente cadastrada ✓");
+            } else {
+              const { month, year } = getState();
+              await addTransaction(user.uid, {
+                type: "expense",
+                kind: "fixed",
+                categoryId: rest.categoryId,
+                customLabel: rest.customLabel || rest.name,
+                description: null,
+                amount: rest.amount,
+                dueDay: rest.dueDay || null,
+                isPaid: false,
+                templateId: null,
+                month,
+                year,
+              });
+              toast("Conta fixa adicionada só este mês ✓");
+            }
+            await loadMonth();
+          });
         });
+
+      document
+        .getElementById("btn-add-budget")
+        ?.addEventListener("click", () => {
+          openBudgetModal(async (data) => {
+            const { repeatEveryMonth, ...rest } = data;
+            const { month, year } = getState();
+            if (repeatEveryMonth) {
+              await addBudgetPlanTemplate(user.uid, rest);
+              toast("Categoria recorrente adicionada ✓");
+            } else {
+              await addBudgetPlan(user.uid, month, year, rest);
+              toast("Categoria adicionada ao plano ✓");
+            }
+            await loadMonth(true);
+          });
+        });
+
+      document
+        .getElementById("btn-add-invoice")
+        ?.addEventListener("click", () => {
+          openInvoiceModal(async (data) => {
+            await addInvoice(user.uid, getState().month, getState().year, data);
+            toast("Fatura criada ✓");
+            await loadMonth(true);
+          });
+        });
+
+      document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+        btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
       });
 
-    document.querySelectorAll("[data-close-modal]").forEach((btn) => {
-      btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
-    });
-
-    await loadMonth();
-  } else {
-    showAuth();
-  }
-});
+      await loadMonth();
+    } else {
+      showAuth();
+    }
+  });
+}); // end DOMContentLoaded
