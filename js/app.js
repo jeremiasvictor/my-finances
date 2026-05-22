@@ -577,53 +577,53 @@ function navMonth(dir) {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", () => {
-  subscribe((state) => render(state));
+subscribe((state) => render(state));
 
-  // Wire auth form
-  (function wireAuthForm() {
-    let mode = "login";
-    const setMode = (m) => {
-      mode = m;
-      document.getElementById("auth-title").textContent =
-        m === "login" ? "Entre na sua conta" : "Crie sua conta";
-      document.getElementById("auth-submit").textContent =
-        m === "login" ? "Entrar" : "Criar conta";
-      document.getElementById("auth-toggle-text").innerHTML =
-        m === "login"
-          ? 'Não tem conta? <span id="auth-toggle" class="link">Criar agora</span>'
-          : 'Já tem conta? <span id="auth-toggle" class="link">Entrar</span>';
-      document.getElementById("auth-error").textContent = "";
-      document
-        .getElementById("auth-toggle")
-        ?.addEventListener("click", () =>
-          setMode(mode === "login" ? "signup" : "login"),
-        );
-    };
+// Wire auth form
+(function wireAuthForm() {
+  let mode = "login";
+  const setMode = (m) => {
+    mode = m;
+    document.getElementById("auth-title").textContent =
+      m === "login" ? "Entre na sua conta" : "Crie sua conta";
+    document.getElementById("auth-submit").textContent =
+      m === "login" ? "Entrar" : "Criar conta";
+    document.getElementById("auth-toggle-text").innerHTML =
+      m === "login"
+        ? 'Não tem conta? <span id="auth-toggle" class="link">Criar agora</span>'
+        : 'Já tem conta? <span id="auth-toggle" class="link">Entrar</span>';
+    document.getElementById("auth-error").textContent = "";
     document
       .getElementById("auth-toggle")
       ?.addEventListener("click", () =>
         setMode(mode === "login" ? "signup" : "login"),
       );
-    document
-      .getElementById("auth-submit")
-      ?.addEventListener("click", async () => {
-        const email = document.getElementById("auth-email").value.trim();
-        const pass = document.getElementById("auth-pass").value;
-        const errEl = document.getElementById("auth-error");
-        errEl.textContent = "";
-        try {
-          if (mode === "login") await login(email, pass);
-          else await register(email, pass);
-        } catch (e) {
-          errEl.textContent = e.message;
-        }
-      });
-    document.getElementById("auth-pass")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") document.getElementById("auth-submit").click();
+  };
+  document
+    .getElementById("auth-toggle")
+    ?.addEventListener("click", () =>
+      setMode(mode === "login" ? "signup" : "login"),
+    );
+  document
+    .getElementById("auth-submit")
+    ?.addEventListener("click", async () => {
+      const email = document.getElementById("auth-email").value.trim();
+      const pass = document.getElementById("auth-pass").value;
+      const errEl = document.getElementById("auth-error");
+      errEl.textContent = "";
+      try {
+        if (mode === "login") await login(email, pass);
+        else await register(email, pass);
+      } catch (e) {
+        errEl.textContent = e.message;
+      }
     });
-  })();
+  document.getElementById("auth-pass")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("auth-submit").click();
+  });
+})();
 
+document.addEventListener("DOMContentLoaded", () => {
   onAuth(async (user) => {
     setState({ user });
     if (user) {
