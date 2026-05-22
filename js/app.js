@@ -271,58 +271,6 @@ function openBudgetModal(onSubmit) {
   });
 }
 
-document.body.appendChild(modal);
-document.body.style.overflow = "hidden";
-if (window.lucide) lucide.createIcons();
-
-modal.querySelector("#bgt-cat").addEventListener("change", (e) => {
-  modal.querySelector("#bgt-custom-wrap").style.display =
-    e.target.value === "__custom" ? "block" : "none";
-});
-
-const closeModal = () => {
-  modal.remove();
-  document.body.style.overflow = "";
-};
-modal
-  .querySelector("#close-budget-modal")
-  .addEventListener("click", closeModal);
-modal.querySelector(".modal-backdrop").addEventListener("click", closeModal);
-
-modal.querySelector("#btn-bgt-submit").addEventListener("click", async () => {
-  const catVal = modal.querySelector("#bgt-cat").value;
-  const budget = parseFloat(modal.querySelector("#bgt-budget").value);
-  if (!catVal) {
-    toast("Selecione uma categoria", "error");
-    return;
-  }
-  if (!budget || budget <= 0) {
-    toast("Informe um valor válido", "error");
-    return;
-  }
-
-  const isCustom = catVal === "__custom";
-  const customLabel = isCustom
-    ? modal.querySelector("#bgt-custom-label").value.trim()
-    : null;
-  if (isCustom && !customLabel) {
-    toast("Informe o nome da categoria", "error");
-    return;
-  }
-
-  const cat = ALL_CATS.find((c) => c.id === catVal) || {
-    id: "outros",
-    icon: "plus",
-  };
-  await onSubmit({
-    categoryId: isCustom ? "outros" : catVal,
-    customLabel: isCustom ? customLabel : null,
-    icon: cat.icon,
-    budget,
-  });
-  closeModal();
-});
-
 // ── Invoice modal ─────────────────────────────────────────────────────────────
 
 function openInvoiceModal(onSubmit) {
