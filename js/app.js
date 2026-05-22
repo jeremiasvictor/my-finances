@@ -13,6 +13,10 @@ import {
   getBudgetPlans,
   addBudgetPlan,
   deleteBudgetPlan,
+  getBudgetPlanTemplates,
+  addBudgetPlanTemplate,
+  deleteBudgetPlanTemplate,
+  instantiateBudgetPlans,
   getInvoices,
   addInvoice,
   deleteInvoice,
@@ -107,7 +111,10 @@ async function loadMonth(skipInstantiate = false) {
   if (!user) return;
   setLoading(true);
   try {
-    if (!skipInstantiate) await instantiateFixedBills(user.uid, month, year);
+    if (!skipInstantiate) {
+      await instantiateFixedBills(user.uid, month, year);
+      await instantiateBudgetPlans(user.uid, month, year);
+    }
 
     const [txs, plans, invoicesList] = await Promise.all([
       getMonthTransactions(user.uid, month, year),
@@ -115,7 +122,6 @@ async function loadMonth(skipInstantiate = false) {
       getInvoices(user.uid, month, year),
     ]);
 
-    // Load members for each invoice
     const invoicesData = await Promise.all(
       invoicesList.map(async (inv) => ({
         invoice: inv,
@@ -232,13 +238,29 @@ function openBudgetModal(onSubmit) {
         <input id="bgt-custom-label" class="field" placeholder="Nome da categoria" style="width:100%"/>
       </div>
       <input id="bgt-budget" class="field" type="number" step="0.01" min="0"
-        placeholder="Orçamento previsto (R$)" style="width:100%;margin-bottom:.75rem"/>
+        placeholder="Orçamento previsto (R$)" style="width:100%;margin-bottom:.85rem"/>
+      <label class="toggle-row" style="margin-bottom:.85rem">
+        <div class="toggle-info">
+          <span class="toggle-label">Repetir todo mês</span>
+          <span class="toggle-sub">Aparece automaticamente em meses futuros</span>
+        </div>
+        <div class="toggle-switch" id="bgt-repeat-toggle" data-on="true">
+          <div class="toggle-thumb"></div>
+        </div>
+      </label>
       <button id="btn-bgt-submit" class="submit-btn">Adicionar ao Plano</button>
     </div>`;
 
   document.body.appendChild(modal);
   document.body.style.overflow = "hidden";
   if (window.lucide) lucide.createIcons();
+
+  let repeatOn = true;
+  const toggle = modal.querySelector("#bgt-repeat-toggle");
+  toggle.addEventListener("click", () => {
+    repeatOn = !repeatOn;
+    toggle.dataset.on = repeatOn;
+  });
 
   modal.querySelector("#bgt-cat").addEventListener("change", (e) => {
     modal.querySelector("#bgt-custom-wrap").style.display =
@@ -284,10 +306,63 @@ function openBudgetModal(onSubmit) {
       customLabel: isCustom ? customLabel : null,
       icon: cat.icon,
       budget,
+      repeatEveryMonth: repeatOn,
     });
     closeModal();
   });
 }
+
+document.body.appendChild(modal);
+document.body.style.overflow = "hidden";
+if (window.lucide) lucide.createIcons();
+
+modal.querySelector("#bgt-cat").addEventListener("change", (e) => {
+  modal.querySelector("#bgt-custom-wrap").style.display =
+    e.target.value === "__custom" ? "block" : "none";
+});
+
+const closeModal = () => {
+  modal.remove();
+  document.body.style.overflow = "";
+};
+modal
+  .querySelector("#close-budget-modal")
+  .addEventListener("click", closeModal);
+modal.querySelector(".modal-backdrop").addEventListener("click", closeModal);
+
+modal.querySelector("#btn-bgt-submit").addEventListener("click", async () => {
+  const catVal = modal.querySelector("#bgt-cat").value;
+  const budget = parseFloat(modal.querySelector("#bgt-budget").value);
+  if (!catVal) {
+    toast("Selecione uma categoria", "error");
+    return;
+  }
+  if (!budget || budget <= 0) {
+    toast("Informe um valor válido", "error");
+    return;
+  }
+
+  const isCustom = catVal === "__custom";
+  const customLabel = isCustom
+    ? modal.querySelector("#bgt-custom-label").value.trim()
+    : null;
+  if (isCustom && !customLabel) {
+    toast("Informe o nome da categoria", "error");
+    return;
+  }
+
+  const cat = ALL_CATS.find((c) => c.id === catVal) || {
+    id: "outros",
+    icon: "plus",
+  };
+  await onSubmit({
+    categoryId: isCustom ? "outros" : catVal,
+    customLabel: isCustom ? customLabel : null,
+    icon: cat.icon,
+    budget,
+  });
+  closeModal();
+});
 
 // ── Invoice modal ─────────────────────────────────────────────────────────────
 
@@ -466,8 +541,15 @@ function render(state) {
     txs,
     () =>
       openBudgetModal(async (data) => {
-        await addBudgetPlan(user.uid, getState().month, getState().year, data);
-        toast("Categoria adicionada ao plano ✓");
+        const { repeatEveryMonth, ...rest } = data;
+        const { month, year } = getState();
+        if (repeatEveryMonth) {
+          await addBudgetPlanTemplate(user.uid, rest);
+          toast("Categoria recorrente adicionada ✓");
+        } else {
+          await addBudgetPlan(user.uid, month, year, rest);
+          toast("Categoria adicionada ao plano ✓");
+        }
         await loadMonth(true);
       }),
     async (planId) => {
@@ -589,16 +671,44 @@ onAuth(async (user) => {
       .getElementById("btn-add-template")
       ?.addEventListener("click", () => {
         openTemplateModal(async (data) => {
-          await addFixedTemplate(user.uid, data);
-          toast("Conta fixa cadastrada ✓");
+          const { repeatEveryMonth, ...rest } = data;
+          if (repeatEveryMonth) {
+            // Save as recurring template (instantiateFixedBills will create this month's entry)
+            await addFixedTemplate(user.uid, rest);
+            toast("Conta fixa recorrente cadastrada ✓");
+          } else {
+            // Save only as a one-off transaction for this month
+            const { month, year } = getState();
+            await addTransaction(user.uid, {
+              type: "expense",
+              kind: "fixed",
+              categoryId: rest.categoryId,
+              customLabel: rest.customLabel || rest.name,
+              description: null,
+              amount: rest.amount,
+              dueDay: rest.dueDay || null,
+              isPaid: false,
+              templateId: null,
+              month,
+              year,
+            });
+            toast("Conta fixa adicionada só este mês ✓");
+          }
           await loadMonth();
         });
       });
 
     document.getElementById("btn-add-budget")?.addEventListener("click", () => {
       openBudgetModal(async (data) => {
-        await addBudgetPlan(user.uid, getState().month, getState().year, data);
-        toast("Categoria adicionada ✓");
+        const { repeatEveryMonth, ...rest } = data;
+        const { month, year } = getState();
+        if (repeatEveryMonth) {
+          await addBudgetPlanTemplate(user.uid, rest);
+          toast("Categoria recorrente adicionada ✓");
+        } else {
+          await addBudgetPlan(user.uid, month, year, rest);
+          toast("Categoria adicionada ao plano ✓");
+        }
         await loadMonth(true);
       });
     });

@@ -25,6 +25,8 @@ import {
 const txCol = (uid) => collection(db, "users", uid, "transactions");
 const tplCol = (uid) => collection(db, "users", uid, "fixedTemplates");
 const budgetCol = (uid) => collection(db, "users", uid, "budgetPlans");
+const budgetTplCol = (uid) =>
+  collection(db, "users", uid, "budgetPlanTemplates");
 const invoiceCol = (uid) => collection(db, "users", uid, "invoices");
 const memberCol = (uid) => collection(db, "users", uid, "invoiceMembers");
 
@@ -138,6 +140,56 @@ export async function updateBudgetPlan(uid, planId, fields) {
 }
 export async function deleteBudgetPlan(uid, planId) {
   return deleteDoc(doc(budgetCol(uid), planId));
+}
+
+// ── Budget Plan Templates (recorrentes) ───────────────────────────────────────
+// Schema: { uid, categoryId, customLabel, icon, budget, createdAt }
+
+export async function getBudgetPlanTemplates(uid) {
+  const snap = await getDocs(
+    query(budgetTplCol(uid), orderBy("createdAt", "asc")),
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+export async function addBudgetPlanTemplate(uid, data) {
+  return addDoc(budgetTplCol(uid), {
+    userId: uid,
+    ...data,
+    createdAt: serverTimestamp(),
+  });
+}
+export async function deleteBudgetPlanTemplate(uid, tplId) {
+  return deleteDoc(doc(budgetTplCol(uid), tplId));
+}
+
+/**
+ * Ensure all budget plan templates have an instance for this month.
+ * Idempotent — skips already-instantiated templates.
+ */
+export async function instantiateBudgetPlans(uid, month, year) {
+  const templates = await getBudgetPlanTemplates(uid);
+  if (!templates.length) return;
+  const existing = await getBudgetPlans(uid, month, year);
+  const existingIds = new Set(
+    existing.filter((p) => p.templateId).map((p) => p.templateId),
+  );
+  return Promise.all(
+    templates
+      .filter((tpl) => !existingIds.has(tpl.id))
+      .map((tpl) =>
+        addDoc(budgetCol(uid), {
+          userId: uid,
+          month,
+          year,
+          categoryId: tpl.categoryId,
+          customLabel: tpl.customLabel,
+          icon: tpl.icon,
+          budget: tpl.budget,
+          templateId: tpl.id,
+          createdAt: serverTimestamp(),
+        }),
+      ),
+  );
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────

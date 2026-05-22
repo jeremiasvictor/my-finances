@@ -208,6 +208,12 @@ export function openTransactionModal(onSubmit, editTx = null) {
 
 // ── Fixed Template modal ───────────────────────────────────────────────────────
 
+// Extended fixed cats including "Outros" for custom
+const FIXED_CATS_WITH_CUSTOM = [
+  ...FIXED_CATS,
+  { id: "outros", label: "Outros", icon: "plus" },
+];
+
 export function openTemplateModal(onSubmit) {
   const modal = document.getElementById("modal-template");
   if (!modal) return;
@@ -221,9 +227,41 @@ export function openTemplateModal(onSubmit) {
     wireHojeButtons(dueWrap);
   }
 
+  // Inject repeat toggle + custom label field if not already present
+  let extraWrap = modal.querySelector("#tpl-extra");
+  if (!extraWrap) {
+    extraWrap = document.createElement("div");
+    extraWrap.id = "tpl-extra";
+    modal.querySelector("#btn-tpl-submit").before(extraWrap);
+  }
+  extraWrap.innerHTML = `
+    <div id="tpl-custom-wrap" style="display:none;margin-bottom:.6rem">
+      <input id="tpl-custom-label" class="field" placeholder="Nome da categoria" style="width:100%"/>
+    </div>
+    <label class="toggle-row" style="margin-bottom:.85rem">
+      <div class="toggle-info">
+        <span class="toggle-label">Repetir todo mês</span>
+        <span class="toggle-sub">Aparece automaticamente em meses futuros</span>
+      </div>
+      <div class="toggle-switch" id="tpl-repeat-toggle" data-on="true">
+        <div class="toggle-thumb"></div>
+      </div>
+    </label>`;
+
   let catId = "";
-  modal.querySelector("#tpl-cat-grid").innerHTML = buildCatGrid(FIXED_CATS);
+  let repeatOn = true;
+
+  modal.querySelector("#tpl-cat-grid").innerHTML = buildCatGrid(
+    FIXED_CATS_WITH_CUSTOM,
+  );
   if (window.lucide) lucide.createIcons();
+
+  // Toggle switch interaction
+  const toggle = modal.querySelector("#tpl-repeat-toggle");
+  toggle.addEventListener("click", () => {
+    repeatOn = !repeatOn;
+    toggle.dataset.on = repeatOn;
+  });
 
   modal.querySelector("#tpl-cat-grid").onclick = (e) => {
     const btn = e.target.closest(".cat-btn");
@@ -232,11 +270,14 @@ export function openTemplateModal(onSubmit) {
     modal
       .querySelectorAll("#tpl-cat-grid .cat-btn")
       .forEach((b) => b.classList.toggle("active", b === btn));
+    modal.querySelector("#tpl-custom-wrap").style.display =
+      catId === "outros" ? "block" : "none";
   };
 
   modal.querySelector("#btn-tpl-submit").onclick = async () => {
     const name = modal.querySelector("#tpl-name").value.trim();
     const amount = parseFloat(modal.querySelector("#tpl-amount").value);
+    const dueDay = parseInt(modal.querySelector("#tpl-due").value) || null;
     if (!name) {
       alert("Informe o nome da conta.");
       return;
@@ -250,11 +291,18 @@ export function openTemplateModal(onSubmit) {
       return;
     }
 
+    const customLabel =
+      catId === "outros"
+        ? modal.querySelector("#tpl-custom-label").value.trim() || "Outros"
+        : null;
+
     await onSubmit({
       name,
       amount,
       categoryId: catId,
-      dueDay: parseInt(modal.querySelector("#tpl-due").value) || null,
+      customLabel,
+      dueDay,
+      repeatEveryMonth: repeatOn,
     });
     closeModal("modal-template");
   };

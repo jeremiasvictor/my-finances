@@ -1740,3 +1740,64 @@ select.field option {
 .member-row.member-paid .member-status {
   color: rgba(212, 255, 63, 0.6);
 }
+
+/* ── Toggle switch ────────────────────────────────────────────────────────── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+}
+.toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.toggle-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.toggle-sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.toggle-switch {
+  width: 42px;
+  height: 24px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  flex-shrink: 0;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  cursor: pointer;
+}
+.toggle-switch[data-on="true"] {
+  background: rgba(212, 255, 63, 0.2);
+  border-color: rgba(212, 255, 63, 0.4);
+}
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transition:
+    transform 0.2s,
+    background 0.2s;
+}
+.toggle-switch[data-on="true"] .toggle-thumb {
+  transform: translateX(18px);
+  background: var(--lime);
+}
